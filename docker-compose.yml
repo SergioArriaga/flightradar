@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+
+  dump1090:
+    image: jraviles/dump1090:latest
+    container_name: dump1090
+    tty: true
+    restart: always
+    devices:
+      - /dev/bus/usb/001/006:/dev/bus/usb/001/006
+    ports:
+      - "8080:8080"
+      - "30005:30005"
+    environment:
+      - FLIGHTAWARE_USER=$FLIGHTAWARE_USER
+      - FLIGHTAWARE_PASS=""
+      # Optional, but encouraged
+      - FEEDER_ID=$FEEDER_ID  
+    networks:
+      - mynetwork
+
+  piaware:
+    image: mikenye/piaware:latest
+    container_name: piaware
+    tty: true
+    restart: always
+    environment:
+      - TZ="Europe/Madrid"
+      - LAT=$LAT
+      - LONG=$LONG
+      - BEASTHOST=dump1090
+      - FEEDER_ID=$FEEDER_ID
+    devices:
+      - /dev/bus/usb/001/006:/dev/bus/usb/001/006
+    depends_on:
+      - dump1090
+    networks:
+      - mynetwork
+
+  fr24feed:
+    image: mikenye/fr24feed:latest
+    container_name: fr24feed
+    tty: true
+    restart: always
+    ports:
+      - "8754:8754"
+    environment:
+      - BEASTHOST=dump1090
+      - FR24KEY=$FR24KEY
+      - MLAT=yes
+    depends_on:
+      - dump1090
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
